@@ -18,12 +18,12 @@ Clone both repositories next to each other:
 
 ```text
 src/
-  InvoiceShelf/               <- this fork, branch ddc
+  InvoiceShelf_v3/            <- this fork, branch ddc
   invoiceshelf-module-ddc/    <- the module
 ```
 
 ```bash
-cd InvoiceShelf
+cd InvoiceShelf_v3
 docker build -f ddc/Dockerfile \
   --build-context ddc_module=../invoiceshelf-module-ddc \
   --build-arg INVOICESHELF_VERSION=3.0.0-alpha.15 \
