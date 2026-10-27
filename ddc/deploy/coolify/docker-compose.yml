@@ -1,0 +1,34 @@
+# InvoiceShelf (Drone Data Command build) for Coolify: add it as a
+# "Docker Compose" resource, give the invoiceshelf service a domain, and
+# Coolify's proxy serves it over HTTPS. Redeploy to pull a newer image.
+#
+# If the GHCR package is private, add a GHCR registry login in Coolify
+# (a token with read:packages) before the first deploy.
+
+services:
+  invoiceshelf:
+    image: ghcr.io/bmanwithab/invoiceshelf-ddc:${INVOICESHELF_DDC_TAG:-latest}
+    pull_policy: always
+    restart: unless-stopped
+    volumes:
+      - invoiceshelf-storage:/var/www/html/storage
+      - invoiceshelf-modules:/var/www/html/Modules
+    environment:
+      # Declaring the generated URL tells Coolify to route the domain to this
+      # service on port 8080.
+      - SERVICE_URL_INVOICESHELF_8080=/
+      - APP_NAME=${APP_NAME:-Drone Data Command Invoicing}
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=${SERVICE_URL_INVOICESHELF_8080}
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/html/storage/app/database.sqlite # please don't touch this!
+      - CACHE_STORE=file
+      - SESSION_DRIVER=file
+      - SESSION_LIFETIME=240
+      - SESSION_DOMAIN=${SERVICE_FQDN_INVOICESHELF_8080}
+      - SANCTUM_STATEFUL_DOMAINS=${SERVICE_FQDN_INVOICESHELF_8080}
+
+volumes:
+  invoiceshelf-storage:
+  invoiceshelf-modules:

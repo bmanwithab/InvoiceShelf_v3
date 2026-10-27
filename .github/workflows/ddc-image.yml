@@ -1,0 +1,124 @@
+# Builds the Drone Data Command image of InvoiceShelf and publishes it to GHCR:
+#   ghcr.io/<owner>/invoiceshelf-ddc:<invoiceshelf version>
+#   ghcr.io/<owner>/invoiceshelf-ddc:<invoiceshelf version>-ddc<module version>
+#   ghcr.io/<owner>/invoiceshelf-ddc:latest          (builds of the ddc branch only)
+#
+# Runs only on this repository's own self-hosted runner, the one labelled
+# `invoiceshelf-ddc`, so it never spends GitHub-hosted minutes. The runner needs
+# Docker with BuildKit (Docker 23+), git and bash.
+#
+# Secrets:
+#   MODULE_REPO_TOKEN  read access (Contents: Read) to the private
+#                      invoiceshelf-module-ddc repository.
+
+name: ddc-image
+
+on:
+  push:
+    branches:
+      - ddc
+    paths:
+      - ddc/**
+      - .github/workflows/ddc-image.yml
+  workflow_dispatch:
+    inputs:
+      module_ref:
+        description: Module branch, tag or commit to build in
+        default: main
+      push_latest:
+        description: Also move the :latest tag
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: ddc-image
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build, smoke-test and publish
+    runs-on: [self-hosted, Linux, X64, invoiceshelf-ddc]
+    timeout-minutes: 45
+    env:
+      MODULE_REPOSITORY: ${{ github.repository_owner }}/invoiceshelf-module-ddc
+    steps:
+      - name: Check out the fork
+        uses: actions/checkout@v4
+
+      - name: Check out the DDC module
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ env.MODULE_REPOSITORY }}
+          ref: ${{ inputs.module_ref || 'main' }}
+          token: ${{ secrets.MODULE_REPO_TOKEN }}
+          path: .ddc-module
+
+      - name: Resolve versions and tags
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+          OWNER="$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')"
+          IS_VERSION="$(sed -n 's/^ARG INVOICESHELF_VERSION=//p' ddc/Dockerfile | head -n 1)"
+          MODULE_VERSION="$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' .ddc-module/module.json | head -n 1)"
+          [[ -n "$IS_VERSION" && -n "$MODULE_VERSION" ]] || { echo "::error::Could not read the versions"; exit 1; }
+
+          # The module must ship what the host loads: built assets and the PDF parser bundle.
+          for f in dist/init.js dist/style.css bundle/classmap.php bundle/bundle.json; do
+            [[ -s ".ddc-module/$f" ]] || { echo "::error::Module is missing $f"; exit 1; }
+          done
+
+          IMAGE="ghcr.io/${OWNER}/invoiceshelf-ddc"
+          {
+            echo "image=${IMAGE}"
+            echo "invoiceshelf=${IS_VERSION}"
+            echo "module=${MODULE_VERSION}"
+            # Built and tested under its exact version tag, so nothing temporary is left behind.
+            echo "candidate=${IMAGE}:${IS_VERSION}-ddc${MODULE_VERSION}"
+          } >> "$GITHUB_OUTPUT"
+          echo "InvoiceShelf ${IS_VERSION}, DroneDataCommand module ${MODULE_VERSION}" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Build
+        shell: bash
+        run: |
+          set -euo pipefail
+          DOCKER_BUILDKIT=1 docker build --pull \
+            -f ddc/Dockerfile \
+            --build-context ddc_module=.ddc-module \
+            --label org.opencontainers.image.source="https://github.com/${GITHUB_REPOSITORY}" \
+            --label org.opencontainers.image.revision="${GITHUB_SHA}" \
+            --label org.opencontainers.image.version="${{ steps.meta.outputs.invoiceshelf }}-ddc${{ steps.meta.outputs.module }}" \
+            -t "${{ steps.meta.outputs.candidate }}" \
+            ddc
+
+      - name: Smoke test
+        shell: bash
+        run: ddc/ci/smoke-test.sh "${{ steps.meta.outputs.candidate }}"
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE="${{ steps.meta.outputs.image }}"
+          CANDIDATE="${{ steps.meta.outputs.candidate }}"
+          TAGS=("${{ steps.meta.outputs.invoiceshelf }}" "${{ steps.meta.outputs.invoiceshelf }}-ddc${{ steps.meta.outputs.module }}")
+          if [[ "$GITHUB_REF" == "refs/heads/ddc" && "${{ inputs.push_latest || 'true' }}" == "true" ]]; then
+            TAGS+=("latest")
+          fi
+          for tag in "${TAGS[@]}"; do
+            docker tag "$CANDIDATE" "${IMAGE}:${tag}"
+            docker push "${IMAGE}:${tag}"
+            echo "- \`${IMAGE}:${tag}\`" >> "$GITHUB_STEP_SUMMARY"
+          done
+
