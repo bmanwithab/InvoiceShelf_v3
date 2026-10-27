@@ -65,4 +65,15 @@ docker exec "$NAME" sh -c 'test -s Modules/DroneDataCommand/dist/init.js && test
   exit 1
 }
 
+docker exec "$NAME" sh -c 'test -s storage/app/templates/pdf/invoice/ddc.blade.php' || {
+  echo "::error::The ddc invoice template was not installed"
+  exit 1
+}
+
+# The template must render against this InvoiceShelf version's PDF data.
+docker exec "$NAME" php artisan tinker --execute='echo view()->exists("pdf_templates::invoice.ddc") ? "template ok" : "template missing";' | grep -q 'template ok' || {
+  echo "::error::The ddc template is not visible to InvoiceShelf"
+  exit 1
+}
+
 echo "Smoke test passed for $IMAGE"

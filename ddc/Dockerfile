@@ -30,6 +30,7 @@ COPY --from=ddc_module --chown=www-data:www-data database /opt/ddc/modules/Drone
 COPY --from=ddc_module --chown=www-data:www-data dist /opt/ddc/modules/DroneDataCommand/dist
 COPY --from=ddc_module --chown=www-data:www-data lang /opt/ddc/modules/DroneDataCommand/lang
 COPY --from=ddc_module --chown=www-data:www-data routes /opt/ddc/modules/DroneDataCommand/routes
+COPY --from=ddc_module --chown=www-data:www-data resources/pdf /opt/ddc/modules/DroneDataCommand/resources/pdf
 COPY --chmod=755 entrypoint.d/50-ddc-module.sh /etc/entrypoint.d/50-ddc-module.sh
 
 USER www-data

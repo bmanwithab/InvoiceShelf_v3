@@ -26,4 +26,15 @@ mkdir -p "$DEST" && cp -a "$SRC/." "$DEST/" || {
 }
 
 ./artisan install:module DroneDataCommand "$version" || echo "!!!! DDC: module install failed; InvoiceShelf keeps running without it"
+
+# The module's PDF templates join the custom template folder (storage is a
+# volume). Only files named ddc* are written, so templates of your own there
+# are never touched.
+TEMPLATES=/var/www/html/storage/app/templates/pdf
+for type_dir in "$SRC"/resources/pdf/*/; do
+    [ -d "$type_dir" ] || continue
+    type=$(basename "$type_dir")
+    mkdir -p "$TEMPLATES/$type" && cp "$type_dir"ddc* "$TEMPLATES/$type/" 2>/dev/null \
+        && echo "**** DDC: installed the ddc $type template ****"
+done
 ./artisan optimize:clear > /dev/null 2>&1 || true

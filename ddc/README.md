@@ -8,7 +8,7 @@ updates merge without conflicts.
 
 | Piece | Where | Changes upstream files? |
 | --- | --- | --- |
-| DDC theme, bank statements, rules | `invoiceshelf-module-ddc` repo | No |
+| DDC theme, company logo, bank statements, rules, Stripe pay links, `ddc` invoice template | `invoiceshelf-module-ddc` repo | No |
 | Docker layer (poppler + module install) | `ddc/Dockerfile`, `ddc/entrypoint.d/` | No |
 | Example stack (local build) | `ddc/docker-compose.yml` | No |
 | Image build + smoke test | `.github/workflows/ddc-image.yml`, `ddc/ci/` | No (new file) |
@@ -43,6 +43,18 @@ Branding beyond colours (company logo, invoice templates, app name) is set in
 InvoiceShelf itself: *Settings → Company* for the logo, `APP_NAME` for the
 app name. Leave the "Powered by InvoiceShelf" source link in place: the
 AGPL-3.0 licence requires that people using the app can get its source.
+
+## Stripe
+
+Set up in the app under *Stripe Payments* (keys, webhook URL, auto-link).
+The webhook URL is `APP_URL/ddc/stripe/webhook`, so `APP_URL` must be the
+public HTTPS address Stripe can reach. Customers open `APP_URL/ddc/pay/...`
+from the invoice, so the same applies to them.
+
+The `ddc` invoice template is copied into
+`storage/app/templates/pdf/invoice/` on every start (only `ddc*` files, so
+your own custom templates there are left alone). Choose it under *Settings →
+Customization → Invoices*.
 
 ## Published image (GHCR)
 
