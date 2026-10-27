@@ -1,0 +1,39 @@
+# Example stack for the DDC build of InvoiceShelf (SQLite). Adjust ports,
+# APP_URL and the volume paths for your host; on Unraid point the volumes at
+# /mnt/user/appdata/invoiceshelf-ddc/...
+#
+#   docker compose -f ddc/docker-compose.yml up -d --build
+
+services:
+  invoiceshelf:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      additional_contexts:
+        ddc_module: ../../invoiceshelf-module-ddc
+      args:
+        INVOICESHELF_VERSION: 3.0.0-alpha.15
+    image: invoiceshelf-ddc:3.0.0-alpha.15
+    container_name: invoiceshelf-ddc
+    restart: unless-stopped
+    ports:
+      - "8090:8080"
+    volumes:
+      - invoiceshelf_storage:/var/www/html/storage
+      - invoiceshelf_modules:/var/www/html/Modules
+    environment:
+      - APP_NAME=Drone Data Command Invoicing
+      - APP_ENV=production
+      - APP_DEBUG=false
+      - APP_URL=http://localhost:8090
+      - DB_CONNECTION=sqlite
+      - DB_DATABASE=/var/www/html/storage/app/database.sqlite # please don't touch this!
+      - CACHE_STORE=file
+      - SESSION_DRIVER=file
+      - SESSION_LIFETIME=240
+      - SESSION_DOMAIN=localhost
+      - SANCTUM_STATEFUL_DOMAINS=localhost:8090
+
+volumes:
+  invoiceshelf_storage:
+  invoiceshelf_modules:
