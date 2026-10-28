@@ -65,6 +65,19 @@ docker exec "$NAME" sh -c 'test -s Modules/DroneDataCommand/dist/init.js && test
   exit 1
 }
 
+echo "== An install that began on an older version still keeps the module"
+docker exec "$NAME" php artisan tinker --execute='App\Platform\Operations\Models\Setting::setSetting("version", "2.4.7");' >/dev/null
+docker restart "$NAME" >/dev/null
+wait_ready
+docker exec "$NAME" php artisan module:list | grep -Eq '\[Enabled\][[:space:]]+DroneDataCommand' || {
+  echo "::error::DroneDataCommand was switched off on a start after an upgrade"
+  exit 1
+}
+docker exec "$NAME" php artisan tinker --execute='echo App\Platform\Operations\Models\Setting::getSetting("version");' | grep -q "$(docker exec "$NAME" head -n 1 version.md)" || {
+  echo "::error::The stored InvoiceShelf version was not brought up to date"
+  exit 1
+}
+
 docker exec "$NAME" sh -c 'test -s storage/app/templates/pdf/invoice/ddc.blade.php' || {
   echo "::error::The ddc invoice template was not installed"
   exit 1

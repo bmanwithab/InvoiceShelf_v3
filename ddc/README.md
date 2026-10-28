@@ -53,8 +53,21 @@ from the invoice, so the same applies to them.
 
 The `ddc` invoice template is copied into
 `storage/app/templates/pdf/invoice/` on every start (only `ddc*` files, so
-your own custom templates there are left alone). Choose it under *Settings →
-Customization → Invoices*.
+your own custom templates there are left alone). To use it, open an
+invoice's create or edit form, click the template button under *Notes*, pick
+**ddc** and tick *Mark as default* so new invoices use it too (the default is
+remembered per user).
+
+## The stored InvoiceShelf version
+
+InvoiceShelf records its version in the database at install time and again
+only through its in-app updater, never when a newer Docker image starts. An
+install that began on an older version (a 2.x database, an earlier image)
+therefore keeps an old version on record, and on every start
+`modules:reconcile` switches off modules that need a newer one ("Module …
+was switched off … requires a different InvoiceShelf version"). The DDC
+start-up step records the image's real version before it installs the
+module, so this stops after the first start of a fixed image.
 
 ## Published image (GHCR)
 
@@ -62,7 +75,7 @@ The `ddc-image` workflow builds `ddc/Dockerfile` with the module, runs
 `ddc/ci/smoke-test.sh` (pdftotext present, headless install, module enabled
 after a restart) and only then pushes:
 
-- `ghcr.io/bmanwithab/invoiceshelf-ddc:3.0.0-alpha.15-ddc0.1.0` (exact build)
+- `ghcr.io/bmanwithab/invoiceshelf-ddc:3.0.0-alpha.15-ddc<module version>` (exact build)
 - `ghcr.io/bmanwithab/invoiceshelf-ddc:3.0.0-alpha.15`
 - `ghcr.io/bmanwithab/invoiceshelf-ddc:latest` (builds of the `ddc` branch)
 

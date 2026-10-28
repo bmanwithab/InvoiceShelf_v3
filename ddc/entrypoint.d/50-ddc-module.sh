@@ -17,6 +17,15 @@ if ! ./artisan migrate:status > /dev/null 2>&1; then
     exit 0
 fi
 
+# InvoiceShelf stores its own version only when it is first installed (or
+# updated through its in-app updater), never when a newer image starts. An
+# install that began on an older version therefore keeps reporting that
+# version, and modules:reconcile switches off any module that requires a
+# newer one, with a "switched off after the upgrade" notification on every
+# start. Record the version this image actually runs, as the updater would.
+./artisan tinker --execute='App\Platform\Operations\Installation\Application\InstallationState::setCurrentVersion();' > /dev/null 2>&1 \
+    || echo "!!!! DDC: could not record the InvoiceShelf version"
+
 version=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$SRC/module.json" | head -n 1)
 
 echo "**** DDC: installing DroneDataCommand module $version ****"
@@ -25,7 +34,13 @@ mkdir -p "$DEST" && cp -a "$SRC/." "$DEST/" || {
     exit 0
 }
 
-./artisan install:module DroneDataCommand "$version" || echo "!!!! DDC: module install failed; InvoiceShelf keeps running without it"
+if ./artisan install:module DroneDataCommand "$version"; then
+    # A reconcile that ran before the version was recorded leaves its error
+    # on the module; it is installed and enabled now, so clear it.
+    ./artisan tinker --execute='Illuminate\Support\Facades\DB::table("modules")->where("name", "DroneDataCommand")->update(["last_error" => null, "last_failed_at" => null]);' > /dev/null 2>&1 || true
+else
+    echo "!!!! DDC: module install failed; InvoiceShelf keeps running without it"
+fi
 
 # The module's PDF templates join the custom template folder (storage is a
 # volume). Only files named ddc* are written, so templates of your own there
