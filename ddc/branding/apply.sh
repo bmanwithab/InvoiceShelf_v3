@@ -29,6 +29,8 @@ BRAND_NAME="${BRAND_NAME:-Air Reel Technologies}"
 BRAND_URL="${BRAND_URL:-https://airreeltech.com}"
 BRAND_INK="${BRAND_INK:-#0d0d16}"
 BRAND_ACCENT="${BRAND_ACCENT:-#02befe}"
+# The fork's own source, not upstream's: AGPL section 13 wants what is running.
+BRAND_SOURCE_URL="${BRAND_SOURCE_URL:-https://github.com/bmanwithab/InvoiceShelf_v3/tree/{version}}"
 HERE="$(cd "$(dirname "$0")" && pwd)"
 
 say() { printf '  branding: %s\n' "$*"; }
@@ -100,6 +102,12 @@ need "$CFG" "env('INVOICESHELF_POWERED_BY_URL', 'https://invoiceshelf.com')" 'po
 sed -i "s|env('INVOICESHELF_POWERED_BY_NAME', 'InvoiceShelf')|env('INVOICESHELF_POWERED_BY_NAME', '$BRAND_NAME')|" "$CFG"
 sed -i "s|env('INVOICESHELF_POWERED_BY_URL', 'https://invoiceshelf.com')|env('INVOICESHELF_POWERED_BY_URL', '$BRAND_URL')|" "$CFG"
 say "powered-by defaults -> $BRAND_NAME"
+
+# AGPL section 13 wants the source of the version actually running. This is a
+# fork, so upstream's address is the wrong answer — it must point at our branch.
+need "$CFG" "env('INVOICESHELF_SOURCE_URL', 'https://github.com/InvoiceShelf/InvoiceShelf/tree/{version}')" 'source-url default'
+sed -i "s|env('INVOICESHELF_SOURCE_URL', 'https://github.com/InvoiceShelf/InvoiceShelf/tree/{version}')|env('INVOICESHELF_SOURCE_URL', '$BRAND_SOURCE_URL')|" "$CFG"
+say "source-url default -> $BRAND_SOURCE_URL"
 
 # ── visible copy in blade partials ─────────────────────────────────────────
 for f in "$APP/resources/views/emails/test.blade.php" "$APP/resources/views/mcp/consent.blade.php"; do

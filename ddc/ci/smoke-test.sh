@@ -118,5 +118,9 @@ docker exec "$NAME" php artisan tinker --execute='echo App\Platform\Operations\M
   | grep -q 'branding/logo-tile.png' || {
   echo "::error::admin_portal_logo was not seeded"; exit 1
 }
+docker exec "$NAME" php artisan tinker --execute='echo config("invoiceshelf.source_url");' \
+  | grep -q 'bmanwithab/InvoiceShelf_v3' || {
+  echo "::error::the AGPL source link does not point at this fork"; exit 1
+}
 
 echo "Smoke test passed for $IMAGE"
