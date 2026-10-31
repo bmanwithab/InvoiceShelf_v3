@@ -124,6 +124,19 @@ if ! grep -q "'name' =>" "$APP_CFG"; then
 fi
 say "config/app.php name default -> $BRAND_NAME"
 
+# The entrypoint copies .env.example to .env on a first start, so the example has
+# to carry the brand too — quoted, since the value has spaces and an unquoted one
+# is a dotenv parse error that stops the container.
+if [ -f "$APP/.env.example" ]; then
+    if grep -q '^APP_NAME=' "$APP/.env.example"; then
+        sed -i "s|^APP_NAME=.*|APP_NAME=\"$BRAND_NAME\"|" "$APP/.env.example"
+    else
+        printf 'APP_NAME="%s"\n' "$BRAND_NAME" >> "$APP/.env.example"
+    fi
+    grep -qF "APP_NAME=\"$BRAND_NAME\"" "$APP/.env.example" || die ".env.example name not branded"
+fi
+say ".env.example name -> $BRAND_NAME (quoted)"
+
 # ── visible copy in blade partials ─────────────────────────────────────────
 for f in "$APP/resources/views/emails/test.blade.php" "$APP/resources/views/mcp/consent.blade.php"; do
     [ -f "$f" ] || continue

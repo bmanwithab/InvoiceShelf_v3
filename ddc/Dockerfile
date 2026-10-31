@@ -45,6 +45,6 @@ COPY --from=ddc_module --chown=www-data:www-data lang /opt/ddc/modules/DroneData
 COPY --from=ddc_module --chown=www-data:www-data routes /opt/ddc/modules/DroneDataCommand/routes
 COPY --from=ddc_module --chown=www-data:www-data resources/pdf /opt/ddc/modules/DroneDataCommand/resources/pdf
 COPY --chmod=755 entrypoint.d/50-ddc-module.sh /etc/entrypoint.d/50-ddc-module.sh
-COPY --chmod=755 entrypoint.d/51-ddc-branding.sh /etc/entrypoint.d/51-ddc-branding.sh
+COPY --chmod=755 entrypoint.d/50-ddc-branding.sh /etc/entrypoint.d/50-ddc-branding.sh
 
 USER www-data
