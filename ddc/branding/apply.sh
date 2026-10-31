@@ -109,6 +109,21 @@ need "$CFG" "env('INVOICESHELF_SOURCE_URL', 'https://github.com/InvoiceShelf/Inv
 sed -i "s|env('INVOICESHELF_SOURCE_URL', 'https://github.com/InvoiceShelf/InvoiceShelf/tree/{version}')|env('INVOICESHELF_SOURCE_URL', '$BRAND_SOURCE_URL')|" "$CFG"
 say "source-url default -> $BRAND_SOURCE_URL"
 
+# The app's own name, and the only safe way to set it on this image. Passing
+# APP_NAME through the container environment does NOT work here: the entrypoint
+# serialises the environment into .env unquoted, so "APP_NAME=Air Reel
+# Technologies" lands as a dotenv parse error, config:cache fails, and the
+# container exits 1 before it ever serves a request. A config default never
+# passes through .env, so it is written correctly, and an operator can still
+# override it with a quoted APP_NAME if they want to.
+APP_CFG="$APP/config/app.php"
+need "$APP_CFG" "'timezone' => env('APP_TIMEZONE', 'UTC')," 'config/app.php timezone key'
+if ! grep -q "'name' =>" "$APP_CFG"; then
+    sed -i "s|    'timezone' => env('APP_TIMEZONE', 'UTC'),|    'name' => env('APP_NAME', '$BRAND_NAME'),\n\n    'timezone' => env('APP_TIMEZONE', 'UTC'),|" "$APP_CFG"
+    grep -qF "'name' => env('APP_NAME', '$BRAND_NAME')" "$APP_CFG" || die "config/app.php name key did not land"
+fi
+say "config/app.php name default -> $BRAND_NAME"
+
 # ── visible copy in blade partials ─────────────────────────────────────────
 for f in "$APP/resources/views/emails/test.blade.php" "$APP/resources/views/mcp/consent.blade.php"; do
     [ -f "$f" ] || continue
