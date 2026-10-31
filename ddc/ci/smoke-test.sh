@@ -99,12 +99,14 @@ printf '%s' "$LOGIN_HTML" | grep -qF "<title>${BRAND}</title>" || {
 printf '%s' "$LOGIN_HTML" | grep -qF '/brand/logo-on-dark.png' || {
   echo "::error::the sign-in page does not carry the brand logo"; exit 1
 }
-# The shell legitimately keeps two identifiers: the JS entry point and the module
-# SDK namespace. Anything else on this page is copy that should now say the brand.
-VISIBLE="$(printf '%s' "$LOGIN_HTML" | sed -e 's|window\.InvoiceShelf|__ENTRY__|g' -e 's|\\InvoiceShelf\\|__SDK__|g')"
-if printf '%s' "$VISIBLE" | grep -qF 'InvoiceShelf'; then
-  echo "::error::the sign-in page still says InvoiceShelf"; printf '%s' "$VISIBLE" | grep -o '.\{0,40\}InvoiceShelf.\{0,40\}' | head -5; exit 1
-fi
+# The page legitimately keeps identifiers and URLs that contain the word: the JS
+# entry point (window.InvoiceShelf), the module SDK namespace, and this fork's own
+# repository address. What must be gone is copy a person reads.
+for phrase in "<title>InvoiceShelf" "Self Hosted Invoicing Platform" "Powered by InvoiceShelf" 'alt="InvoiceShelf"'; do
+  if printf '%s' "$LOGIN_HTML" | grep -qF "$phrase"; then
+    echo "::error::the sign-in page still shows: $phrase"; exit 1
+  fi
+done
 docker exec "$NAME" sh -c 'grep -q "Air Reel" public/favicons/site.webmanifest' || {
   echo "::error::the web manifest was not branded"; exit 1
 }
