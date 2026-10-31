@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Air Reel Technologies">
+  <rect width="512" height="512" rx="113" fill="rgb(2,190,254)"/>
+  <g fill="#fff">
+    <path d="M256 150c10 0 18 7 20 16 22 4 44 12 62 24l-14 12c-15-10-32-17-50-20 4 9 8 19 10 29h-56c2-10 6-20 10-29-18 3-35 10-50 20l-14-12c18-12 40-20 62-24 2-9 10-16 20-16Z"/>
+    <rect x="72" y="300" width="368" height="34" rx="17"/>
+  </g>
+</svg>

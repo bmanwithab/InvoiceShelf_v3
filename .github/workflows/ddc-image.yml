@@ -1,7 +1,10 @@
 # Builds the Drone Data Command image of InvoiceShelf and publishes it to GHCR:
-#   ghcr.io/<owner>/invoiceshelf-ddc:<invoiceshelf version>
-#   ghcr.io/<owner>/invoiceshelf-ddc:<invoiceshelf version>-ddc<module version>
+#   ghcr.io/<owner>/invoiceshelf-ddc:<invoiceshelf version>-ddc<module version>[-b<brand version>]
 #   ghcr.io/<owner>/invoiceshelf-ddc:latest          (builds of the ddc branch only)
+#
+# The brand layer (ddc/branding) changes pixels without changing either version,
+# so ddc/branding/VERSION joins the tag — an already-published tag is never
+# moved under a pinned deploy.
 #
 # Runs only on this repository's own self-hosted runner, the one labelled
 # `invoiceshelf-ddc`, so it never spends GitHub-hosted minutes. The runner needs
@@ -73,12 +76,22 @@ jobs:
           done
 
           IMAGE="ghcr.io/${OWNER}/invoiceshelf-ddc"
+          # The brand layer changes the pixels without changing either version,
+          # so its own counter joins the tag: a tag that is already published is
+          # never moved under a pinned deploy.
+          BRAND_VERSION="$(tr -d '[:space:]' < ddc/branding/VERSION 2>/dev/null || true)"
+          VERSION_TAG="${IS_VERSION}-ddc${MODULE_VERSION}"
+          if [ -n "${BRAND_VERSION}" ]; then
+            VERSION_TAG="${VERSION_TAG}-b${BRAND_VERSION}"
+          fi
           {
             echo "image=${IMAGE}"
             echo "invoiceshelf=${IS_VERSION}"
             echo "module=${MODULE_VERSION}"
+            echo "brand=${BRAND_VERSION}"
             # Built and tested under its exact version tag, so nothing temporary is left behind.
-            echo "candidate=${IMAGE}:${IS_VERSION}-ddc${MODULE_VERSION}"
+            echo "tag=${VERSION_TAG}"
+            echo "candidate=${IMAGE}:${VERSION_TAG}"
           } >> "$GITHUB_OUTPUT"
           echo "InvoiceShelf ${IS_VERSION}, DroneDataCommand module ${MODULE_VERSION}" >> "$GITHUB_STEP_SUMMARY"
 
@@ -112,7 +125,7 @@ jobs:
           set -euo pipefail
           IMAGE="${{ steps.meta.outputs.image }}"
           CANDIDATE="${{ steps.meta.outputs.candidate }}"
-          TAGS=("${{ steps.meta.outputs.invoiceshelf }}" "${{ steps.meta.outputs.invoiceshelf }}-ddc${{ steps.meta.outputs.module }}")
+          TAGS=("${{ steps.meta.outputs.tag }}")
           if [[ "$GITHUB_REF" == "refs/heads/ddc" && "${{ inputs.push_latest || 'true' }}" == "true" ]]; then
             TAGS+=("latest")
           fi

@@ -1,0 +1,13 @@
+
+    {{-- Air Reel Technologies: the sign-in lockup follows the active theme.
+         An operator's uploaded logo still wins — the body script sets
+         window.login_page_logo from the stored setting after this runs. --}}
+    <script>
+        window.brand_login_logo = document.documentElement.getAttribute('data-theme') === 'dark'
+            ? '/brand/logo-on-dark.png'
+            : '/brand/logo-on-light.png';
+        window.login_page_logo = window.brand_login_logo;
+        if (!document.querySelector('meta[name="application-name"]')) {
+            document.head.insertAdjacentHTML('beforeend', '<meta name="application-name" content="__BRAND_NAME__">');
+        }
+    </script>

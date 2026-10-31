@@ -89,4 +89,34 @@ docker exec "$NAME" php artisan tinker --execute='echo view()->exists("pdf_templ
   exit 1
 }
 
+echo "== Branding: the shell, the icon set and the seeded settings"
+BRAND="${BRAND_NAME:-Air Reel Technologies}"
+LOGIN_HTML="$(docker exec "$NAME" curl -fsS http://127.0.0.1:8080/login)"
+
+printf '%s' "$LOGIN_HTML" | grep -qF "<title>${BRAND}</title>" || {
+  echo "::error::<title> is not the brand"; printf '%s' "$LOGIN_HTML" | grep -o '<title>[^<]*</title>' || true; exit 1
+}
+printf '%s' "$LOGIN_HTML" | grep -qF '/brand/logo-on-dark.png' || {
+  echo "::error::the sign-in page does not carry the brand logo"; exit 1
+}
+# The shell legitimately keeps two identifiers: the JS entry point and the module
+# SDK namespace. Anything else on this page is copy that should now say the brand.
+VISIBLE="$(printf '%s' "$LOGIN_HTML" | sed -e 's|window\.InvoiceShelf|__ENTRY__|g' -e 's|\\InvoiceShelf\\|__SDK__|g')"
+if printf '%s' "$VISIBLE" | grep -qF 'InvoiceShelf'; then
+  echo "::error::the sign-in page still says InvoiceShelf"; printf '%s' "$VISIBLE" | grep -o '.\{0,40\}InvoiceShelf.\{0,40\}' | head -5; exit 1
+fi
+docker exec "$NAME" sh -c 'grep -q "Air Reel" public/favicons/site.webmanifest' || {
+  echo "::error::the web manifest was not branded"; exit 1
+}
+docker exec "$NAME" sh -c 'grep -q "#02befe" public/favicons/browserconfig.xml' || {
+  echo "::error::the tile colour was not branded"; exit 1
+}
+docker exec "$NAME" test -s storage/app/public/branding/logo-tile.png || {
+  echo "::error::the sidebar logo was not seeded into storage"; exit 1
+}
+docker exec "$NAME" php artisan tinker --execute='echo App\Platform\Operations\Models\Setting::getSetting("admin_portal_logo");' \
+  | grep -q 'branding/logo-tile.png' || {
+  echo "::error::admin_portal_logo was not seeded"; exit 1
+}
+
 echo "Smoke test passed for $IMAGE"
