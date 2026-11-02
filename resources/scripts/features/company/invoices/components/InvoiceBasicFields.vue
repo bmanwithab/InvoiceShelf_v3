@@ -47,6 +47,14 @@
         />
       </BaseInputGroup>
 
+      <BaseInputGroup label="Terms" :content-loading="isLoading">
+        <BaseInput
+          v-model="invoiceStore.newInvoice.terms"
+          :content-loading="isLoading"
+          placeholder="Net 30"
+        />
+      </BaseInputGroup>
+
       <BaseInputGroup
         :label="$t('invoices.invoice_number')"
         :content-loading="isLoading"

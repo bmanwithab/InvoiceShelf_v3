@@ -83,6 +83,7 @@ export interface Invoice {
   id: number
   invoice_date: string
   due_date: string
+  terms: string | null
   invoice_number: string
   reference_number: string | null
   type: InvoiceType

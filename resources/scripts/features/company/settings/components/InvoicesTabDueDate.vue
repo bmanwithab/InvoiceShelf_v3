@@ -13,12 +13,14 @@ const isSaving = ref<boolean>(false)
 const dueDateSettings = reactive<{
   invoice_set_due_date_automatically: string
   invoice_due_date_days: string
+  invoice_terms: string
 }>({
   invoice_set_due_date_automatically:
     companyStore.selectedCompanySettings.invoice_set_due_date_automatically ??
     'NO',
   invoice_due_date_days:
     companyStore.selectedCompanySettings.invoice_due_date_days ?? '',
+  invoice_terms: companyStore.selectedCompanySettings.invoice_terms ?? '',
 })
 
 const dueDateAutoField = computed<boolean>({
@@ -65,6 +67,9 @@ async function submitForm(): Promise<void> {
       dueDateSettings.invoice_due_date_days
   }
 
+  // Carried onto every new invoice; still editable on each one
+  data.settings.invoice_terms = dueDateSettings.invoice_terms
+
   await companyStore.updateCompanySettings({
     data,
     message: 'settings.customization.invoices.invoice_settings_updated',
@@ -109,6 +114,18 @@ async function submitForm(): Promise<void> {
             :invalid="v$.dueDateSettings.invoice_due_date_days.$error"
             type="number"
             @input="v$.dueDateSettings.invoice_due_date_days.$touch()"
+          />
+        </div>
+      </BaseInputGroup>
+
+      <BaseInputGroup
+        label="Default payment terms"
+        class="mt-2 mb-4"
+      >
+        <div class="w-full sm:w-1/2">
+          <BaseInput
+            v-model="dueDateSettings.invoice_terms"
+            placeholder="Net 30"
           />
         </div>
       </BaseInputGroup>

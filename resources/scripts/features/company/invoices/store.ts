@@ -72,6 +72,7 @@ export interface InvoiceFormData {
   template_name: string | null
   invoice_date: string
   due_date: string
+  terms: string
   notes: string | null
   discount: number
   discount_type: DiscountType
@@ -105,6 +106,7 @@ function createInvoiceStub(): InvoiceFormData {
     template_name: null,
     invoice_date: '',
     due_date: '',
+    terms: '',
     notes: '',
     discount: 0,
     discount_type: 'fixed',
@@ -540,6 +542,9 @@ export const useInvoiceStore = defineStore('invoice', {
           )
           this.newInvoice.due_date = formatDate(dueDate, 'YYYY-MM-DD')
         }
+
+        // Company-level default terms; the form can still override per invoice
+        this.newInvoice.terms = companySettings.invoice_terms ?? ''
       } else if (isEdit && routeParams?.id) {
         editActions.push(this.fetchInvoice(Number(routeParams.id)))
       }

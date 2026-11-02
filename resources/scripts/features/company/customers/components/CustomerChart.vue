@@ -84,6 +84,9 @@ const kpis = computed<Kpi[]>(() => [
   },
 ])
 
+// A failed load shows a retry rather than placeholders that never resolve
+const loadError = ref<boolean>(false)
+
 watch(
   () => route.params.id,
   (id) => {
@@ -96,9 +99,6 @@ watch(
   },
   { immediate: true },
 )
-
-// A failed load shows a retry rather than placeholders that never resolve
-const loadError = ref<boolean>(false)
 
 async function load(): Promise<void> {
   loadError.value = false
