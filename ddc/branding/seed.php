@@ -19,14 +19,18 @@
  */
 
 declare(strict_types=1);
+use App\Platform\Operations\Installation\Application\InstallationState;
+use App\Platform\Operations\Models\Setting;
+use Illuminate\Contracts\Console\Kernel;
+use Illuminate\Foundation\Application;
 
 const APP_ROOT = '/var/www/html';
 
 require APP_ROOT.'/vendor/autoload.php';
 
-/** @var \Illuminate\Foundation\Application $app */
+/** @var Application $app */
 $app = require APP_ROOT.'/bootstrap/app.php';
-$app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
+$app->make(Kernel::class)->bootstrap();
 
 $brandName = getenv('BRAND_NAME') ?: 'Air Reel Technologies';
 $tile = getenv('BRAND_TILE') ?: '/opt/ddc/branding/assets/tile-512.png';
@@ -39,7 +43,7 @@ $report = static function (string $line): void {
 };
 
 try {
-    if (! \App\Platform\Operations\Installation\Application\InstallationState::isDbCreated()) {
+    if (! InstallationState::isDbCreated()) {
         $report('database not installed yet — skipping settings');
 
         return;
@@ -67,7 +71,7 @@ try {
     ];
 
     foreach ($wanted as $key => $value) {
-        $current = \App\Platform\Operations\Models\Setting::getSetting($key);
+        $current = Setting::getSetting($key);
 
         if (is_string($current) && trim($current) !== '') {
             $report($key.' already set — left as '.$current);
@@ -75,10 +79,10 @@ try {
             continue;
         }
 
-        \App\Platform\Operations\Models\Setting::setSetting($key, $value);
+        Setting::setSetting($key, $value);
         $report($key.' -> '.$value);
     }
-} catch (\Throwable $e) {
+} catch (Throwable $e) {
     // Never block a boot on branding: the app is more important than the paint.
     $report('skipped ('.$e->getMessage().')');
 }
